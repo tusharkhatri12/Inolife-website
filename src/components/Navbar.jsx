@@ -21,6 +21,16 @@ const Navbar = () => {
 
   const toggleMenu = () => setIsOpen(!isOpen);
 
+  // Function to scroll to top when navigation link is clicked
+  const handleNavClick = () => {
+    window.scrollTo({
+      top: 0,
+      left: 0,
+      behavior: 'smooth'
+    });
+    setIsOpen(false); // Close mobile menu
+  };
+
   const navItems = [
     { path: "/", label: "Home" },
     { path: "/about", label: "About" },
@@ -42,7 +52,7 @@ const Navbar = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
         >
-          <Link to="/">
+          <Link to="/" onClick={handleNavClick}>
             <div className="logo-content">
               <div className="logo-icon"><Atom size={24} /></div>
               <div className="logo-text">
@@ -63,6 +73,7 @@ const Navbar = () => {
               <Link
                 to={item.path}
                 className={location.pathname === item.path ? "active" : ""}
+                onClick={handleNavClick}
               >
                 {item.label}
               </Link>
@@ -120,7 +131,7 @@ const Navbar = () => {
                   <Link
                     to={item.path}
                     className={location.pathname === item.path ? "active" : ""}
-                    onClick={() => setIsOpen(false)}
+                    onClick={handleNavClick}
                   >
                     {item.label}
                   </Link>

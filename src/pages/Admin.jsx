@@ -1,18 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { 
+  Download, 
+  Trash2, 
+  FileText, 
   Users, 
   Mail, 
-  FileText, 
   Briefcase, 
-  Download,
+  Package,
+  Bell,
   Eye,
-  Trash2,
-  Database,
-  TrendingUp,
-  Calendar,
-  CheckCircle,
-  AlertCircle
+  FileDown
 } from 'lucide-react';
 import ApiService from '../services/apiService';
 import '../styles/Admin.css';
@@ -23,7 +21,8 @@ const Admin = () => {
     applications: [],
     resumes: [],
     contacts: [],
-    inquiries: []
+    inquiries: [],
+    subscribers: []
   });
 
   useEffect(() => {
@@ -35,51 +34,85 @@ const Admin = () => {
       applications: ApiService.getJobApplications(),
       resumes: ApiService.getResumeSubmissions(),
       contacts: ApiService.getContactSubmissions(),
-      inquiries: ApiService.getProductInquiries()
+      inquiries: ApiService.getProductInquiries(),
+      subscribers: ApiService.getNewsletterSubscribers()
     });
   };
 
   const exportData = (type) => {
-    const dataToExport = data[type];
-    const csvContent = convertToCSV(dataToExport);
+    const csvContent = convertToCSV(data[type]);
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${type}_data.csv`;
+    a.download = `${type}_${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
 
-  const convertToCSV = (data) => {
-    if (data.length === 0) return '';
-    
-    const headers = Object.keys(data[0]);
-    const csvRows = [headers.join(',')];
-    
-    data.forEach(row => {
-      const values = headers.map(header => {
-        const value = row[header];
-        return typeof value === 'string' ? `"${value.replace(/"/g, '""')}"` : value;
-      });
-      csvRows.push(values.join(','));
-    });
-    
-    return csvRows.join('\n');
-  };
-
   const clearData = (type) => {
-    if (window.confirm(`Are you sure you want to clear all ${type} data?`)) {
+    if (window.confirm(`Are you sure you want to clear all ${type}?`)) {
       localStorage.removeItem(`${type}Submissions`);
+      if (type === 'newsletter') {
+        localStorage.removeItem('newsletterSubscribers');
+      }
       loadData();
     }
   };
 
-  const downloadResume = (resumeData) => {
+  const convertToCSV = (data) => {
+    if (data.length === 0) return '';
+    
+    const headers = Object.keys(data[0]).filter(key => key !== 'resumeFile'); // Exclude base64 data
+    const csvHeaders = headers.join(',');
+    const csvRows = data.map(item => 
+      headers.map(header => {
+        const value = item[header];
+        if (typeof value === 'string' && value.includes(',')) {
+          return `"${value}"`;
+        }
+        return value || '';
+      }).join(',')
+    );
+    
+    return [csvHeaders, ...csvRows].join('\n');
+  };
+
+  // Download actual file from base64 data
+  const downloadFile = (fileData, fileName, fileType = 'application/pdf') => {
     try {
-      // Create a simple text file with resume information
+      if (!fileData) {
+        alert('No file data available for download.');
+        return;
+      }
+
+      // Convert base64 to blob
+      const base64Response = fetch(fileData);
+      base64Response.then(res => res.blob()).then(blob => {
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      });
+    } catch (error) {
+      console.error('Error downloading file:', error);
+      alert('Failed to download file. Please try again.');
+    }
+  };
+
+  // Download resume file
+  const downloadResume = (resumeData) => {
+    if (resumeData.resumeFile) {
+      const fileName = resumeData.resumeName || `${resumeData.name}_Resume.pdf`;
+      downloadFile(resumeData.resumeFile, fileName);
+    } else {
+      // Fallback to text file if no actual file data
       const resumeInfo = `
 Resume Information: ${resumeData.name}
 
@@ -107,15 +140,16 @@ Submitted on: ${new Date(resumeData.timestamp).toLocaleString()}
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading resume:', error);
-      alert('Failed to download resume. Please try again.');
     }
   };
 
+  // Download application file
   const downloadApplication = (applicationData) => {
-    try {
-      // Create a simple text file with job application information
+    if (applicationData.resumeFile) {
+      const fileName = applicationData.resumeName || `${applicationData.name}_Application.pdf`;
+      downloadFile(applicationData.resumeFile, fileName);
+    } else {
+      // Fallback to text file if no actual file data
       const applicationInfo = `
 Job Application: ${applicationData.jobTitle || 'Unknown Position'}
 
@@ -144,36 +178,34 @@ Submitted on: ${new Date(applicationData.timestamp).toLocaleString()}
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Error downloading application:', error);
-      alert('Failed to download application. Please try again.');
     }
   };
 
-  const renderTable = (items, type) => {
+  const renderTable = (type) => {
+    const items = data[type];
     if (items.length === 0) {
       return (
-        <div className="admin-empty">
-          <Database size={48} />
-          <h3>No data available</h3>
-          <p>No {type} submissions found</p>
+        <div className="empty-state">
+          <FileText size={48} />
+          <h3>No {type} found</h3>
+          <p>There are no {type} submissions yet.</p>
         </div>
       );
     }
 
-    const headers = Object.keys(items[0]).filter(key => key !== 'id');
+    const headers = Object.keys(items[0]).filter(key => key !== 'resumeFile'); // Exclude base64 data
 
     return (
-      <div className="admin-table-container">
-        <table className="admin-table">
+      <div className="table-container">
+        <table className="data-table">
           <thead>
             <tr>
               {headers.map(header => (
-                <th key={header}>
-                  {header.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
-                </th>
+                <th key={header}>{header.charAt(0).toUpperCase() + header.slice(1)}</th>
               ))}
-              {(type === 'resumes' || type === 'applications') && <th>Actions</th>}
+              {(type === 'resumes' || type === 'applications') && (
+                <th>Actions</th>
+              )}
             </tr>
           </thead>
           <tbody>
@@ -200,7 +232,7 @@ Submitted on: ${new Date(applicationData.timestamp).toLocaleString()}
                       whileTap={{ scale: 0.95 }}
                       title={type === 'resumes' ? "Download Resume" : "Download Application"}
                     >
-                      <Download size={16} />
+                      <FileDown size={16} />
                       Download
                     </motion.button>
                   </td>
@@ -213,149 +245,93 @@ Submitted on: ${new Date(applicationData.timestamp).toLocaleString()}
     );
   };
 
-  const getStats = () => {
-    return {
-      totalApplications: data.applications.length,
-      totalResumes: data.resumes.length,
-      totalContacts: data.contacts.length,
-      totalInquiries: data.inquiries.length,
-      totalSubmissions: data.applications.length + data.resumes.length + data.contacts.length + data.inquiries.length
-    };
-  };
-
-  const stats = getStats();
-
   const tabs = [
-    { id: 'applications', name: 'Job Applications', icon: Briefcase, count: data.applications.length },
-    { id: 'resumes', name: 'Resume Submissions', icon: FileText, count: data.resumes.length },
-    { id: 'contacts', name: 'Contact Forms', icon: Mail, count: data.contacts.length },
-    { id: 'inquiries', name: 'Product Inquiries', icon: Users, count: data.inquiries.length }
+    { id: 'applications', label: 'Job Applications', icon: Briefcase, count: data.applications.length },
+    { id: 'resumes', label: 'Resume Submissions', icon: FileText, count: data.resumes.length },
+    { id: 'contacts', label: 'Contact Forms', icon: Mail, count: data.contacts.length },
+    { id: 'inquiries', label: 'Product Inquiries', icon: Package, count: data.inquiries.length },
+    { id: 'subscribers', label: 'Newsletter Subscribers', icon: Bell, count: data.subscribers.length }
+  ];
+
+  const stats = [
+    { title: 'Total Applications', value: data.applications.length, icon: Briefcase },
+    { title: 'Resume Submissions', value: data.resumes.length, icon: FileText },
+    { title: 'Contact Forms', value: data.contacts.length, icon: Mail },
+    { title: 'Product Inquiries', value: data.inquiries.length, icon: Package }
   ];
 
   return (
     <div className="admin-container">
-      {/* Header */}
       <div className="admin-header">
-        <div className="admin-header-content">
-          <h1>Admin Dashboard</h1>
-          <p>Manage submitted data and inquiries</p>
+        <h1>Admin Dashboard</h1>
+        <p>Manage and monitor all form submissions and user interactions</p>
+      </div>
+
+      {/* Stats Cards */}
+      <div className="stats-grid">
+        {stats.map((stat, index) => (
+          <motion.div
+            key={index}
+            className="stat-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, delay: index * 0.1 }}
+          >
+            <div className="stat-icon">
+              <stat.icon size={24} />
+            </div>
+            <div className="stat-content">
+              <h3>{stat.value}</h3>
+              <p>{stat.title}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Tabs */}
+      <div className="tabs-container">
+        <div className="tabs">
+          {tabs.map(tab => (
+            <motion.button
+              key={tab.id}
+              className={`tab ${activeTab === tab.id ? 'active' : ''}`}
+              onClick={() => setActiveTab(tab.id)}
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <tab.icon size={20} />
+              {tab.label}
+              <span className="tab-count">{tab.count}</span>
+            </motion.button>
+          ))}
         </div>
       </div>
 
-      <div className="admin-content">
-        {/* Stats Cards */}
-        <div className="admin-stats">
-          <motion.div 
-            className="stat-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.1 }}
-          >
-            <div className="stat-icon">
-              <Briefcase size={24} />
-            </div>
-            <div className="stat-info">
-              <h3>{stats.totalApplications}</h3>
-              <p>Job Applications</p>
-            </div>
-          </motion.div>
+      {/* Actions */}
+      <div className="actions-bar">
+        <motion.button
+          onClick={() => exportData(activeTab)}
+          className="btn-primary"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Download size={16} />
+          Export CSV
+        </motion.button>
+        <motion.button
+          onClick={() => clearData(activeTab)}
+          className="btn-danger"
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+        >
+          <Trash2 size={16} />
+          Clear All
+        </motion.button>
+      </div>
 
-          <motion.div 
-            className="stat-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-          >
-            <div className="stat-icon">
-              <FileText size={24} />
-            </div>
-            <div className="stat-info">
-              <h3>{stats.totalResumes}</h3>
-              <p>Resume Submissions</p>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="stat-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-          >
-            <div className="stat-icon">
-              <Mail size={24} />
-            </div>
-            <div className="stat-info">
-              <h3>{stats.totalContacts}</h3>
-              <p>Contact Forms</p>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            className="stat-card"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-          >
-            <div className="stat-icon">
-              <Users size={24} />
-            </div>
-            <div className="stat-info">
-              <h3>{stats.totalInquiries}</h3>
-              <p>Product Inquiries</p>
-            </div>
-          </motion.div>
-        </div>
-
-        {/* Main Content */}
-        <div className="admin-main">
-          <div className="admin-card">
-            {/* Tabs */}
-            <div className="admin-tabs">
-              {tabs.map(tab => (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`admin-tab ${activeTab === tab.id ? 'active' : ''}`}
-                >
-                  <tab.icon size={16} />
-                  {tab.name}
-                  <span className="admin-tab-count">{tab.count}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Content */}
-            <div className="admin-content-area">
-              <div className="admin-content-header">
-                <h2>{tabs.find(tab => tab.id === activeTab)?.name}</h2>
-                <div className="admin-actions">
-                  <motion.button
-                    onClick={() => exportData(activeTab)}
-                    className="admin-btn admin-btn-export"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Download size={16} />
-                    Export CSV
-                  </motion.button>
-                  <motion.button
-                    onClick={() => clearData(activeTab)}
-                    className="admin-btn admin-btn-clear"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <Trash2 size={16} />
-                    Clear All
-                  </motion.button>
-                </div>
-              </div>
-
-              <div className="admin-data-area">
-                {renderTable(data[activeTab], activeTab)}
-              </div>
-            </div>
-          </div>
-        </div>
+      {/* Content */}
+      <div className="content-area">
+        {renderTable(activeTab)}
       </div>
     </div>
   );

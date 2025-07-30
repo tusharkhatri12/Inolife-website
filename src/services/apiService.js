@@ -3,6 +3,16 @@ class ApiService {
   // Simulate API calls with localStorage for demo purposes
   // In production, this would connect to a real backend
 
+  // Helper function to convert file to base64
+  static async fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = error => reject(error);
+    });
+  }
+
   // Contact form submission
   static async submitContactForm(formData) {
     try {
@@ -31,10 +41,17 @@ class ApiService {
     try {
       await new Promise(resolve => setTimeout(resolve, 2000));
       
+      // Convert resume file to base64 if present
+      let resumeFileData = null;
+      if (jobData.resume) {
+        resumeFileData = await this.fileToBase64(jobData.resume);
+      }
+      
       const applications = JSON.parse(localStorage.getItem('jobApplications') || '[]');
       const newApplication = {
         id: Date.now(),
         ...jobData,
+        resumeFile: resumeFileData, // Store the actual file data
         timestamp: new Date().toISOString(),
         status: 'pending'
       };
@@ -52,10 +69,17 @@ class ApiService {
     try {
       await new Promise(resolve => setTimeout(resolve, 1800));
       
+      // Convert resume file to base64 if present
+      let resumeFileData = null;
+      if (resumeData.resume) {
+        resumeFileData = await this.fileToBase64(resumeData.resume);
+      }
+      
       const resumes = JSON.parse(localStorage.getItem('resumeSubmissions') || '[]');
       const newResume = {
         id: Date.now(),
         ...resumeData,
+        resumeFile: resumeFileData, // Store the actual file data
         timestamp: new Date().toISOString(),
         status: 'received'
       };

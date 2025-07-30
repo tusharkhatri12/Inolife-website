@@ -4,6 +4,8 @@
   line-height: 1.6;
   color: #333;
   overflow-x: hidden;
+  width: 100%;
+  max-width: 100vw;
 }
 
 /* Hero Section */
@@ -52,6 +54,8 @@
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 20px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .section-header {
@@ -206,6 +210,8 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 30px;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .job-card {
@@ -511,11 +517,15 @@
     gap: 16px;
     margin-top: 24px;
     padding: 0 10px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .job-card {
     padding: 20px 16px;
     margin-bottom: 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .job-header {
@@ -655,10 +665,14 @@
   .culture-card,
   .benefit-card {
     padding: 24px 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .job-card {
     padding: 24px 16px;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .job-header h3 {
@@ -672,6 +686,25 @@
 
   .cta-content h2 {
     font-size: 1.8rem;
+  }
+}
+
+/* Additional fix for very small screens */
+@media (max-width: 360px) {
+  .section-container {
+    padding: 0 10px;
+  }
+  
+  .culture-grid,
+  .benefits-grid,
+  .jobs-grid {
+    padding: 0 5px;
+  }
+  
+  .culture-card,
+  .benefit-card,
+  .job-card {
+    padding: 18px 12px;
   }
 }
 
