@@ -77,6 +77,79 @@ const Admin = () => {
     }
   };
 
+  const downloadResume = (resumeData) => {
+    try {
+      // Create a simple text file with resume information
+      const resumeInfo = `
+Resume Information: ${resumeData.name}
+
+Personal Details:
+- Name: ${resumeData.name}
+- Email: ${resumeData.email}
+- Phone: ${resumeData.phone}
+- Experience: ${resumeData.experience}
+- Education: ${resumeData.education}
+
+Professional Details:
+- Skills: ${resumeData.skills || 'Not specified'}
+- Preferred Position: ${resumeData.preferredPosition || 'Not specified'}
+- Resume File: ${resumeData.resumeName || 'No file uploaded'}
+
+Submitted on: ${new Date(resumeData.timestamp).toLocaleString()}
+      `;
+      
+      const blob = new Blob([resumeInfo], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${resumeData.name}_Resume_${new Date(resumeData.timestamp).toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading resume:', error);
+      alert('Failed to download resume. Please try again.');
+    }
+  };
+
+  const downloadApplication = (applicationData) => {
+    try {
+      // Create a simple text file with job application information
+      const applicationInfo = `
+Job Application: ${applicationData.jobTitle || 'Unknown Position'}
+
+Personal Details:
+- Name: ${applicationData.name}
+- Email: ${applicationData.email}
+- Phone: ${applicationData.phone}
+- Experience: ${applicationData.experience}
+- Education: ${applicationData.education}
+
+Application Details:
+- Job Title: ${applicationData.jobTitle || 'Not specified'}
+- Job ID: ${applicationData.jobId || 'Not specified'}
+- Cover Letter: ${applicationData.coverLetter || 'Not provided'}
+- Resume File: ${applicationData.resumeName || 'No file uploaded'}
+
+Submitted on: ${new Date(applicationData.timestamp).toLocaleString()}
+      `;
+      
+      const blob = new Blob([applicationInfo], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${applicationData.name}_Application_${new Date(applicationData.timestamp).toISOString().split('T')[0]}.txt`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading application:', error);
+      alert('Failed to download application. Please try again.');
+    }
+  };
+
   const renderTable = (items, type) => {
     if (items.length === 0) {
       return (
@@ -100,6 +173,7 @@ const Admin = () => {
                   {header.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
                 </th>
               ))}
+              {(type === 'resumes' || type === 'applications') && <th>Actions</th>}
             </tr>
           </thead>
           <tbody>
@@ -117,6 +191,20 @@ const Admin = () => {
                     }
                   </td>
                 ))}
+                {(type === 'resumes' || type === 'applications') && (
+                  <td>
+                    <motion.button
+                      onClick={() => type === 'resumes' ? downloadResume(item) : downloadApplication(item)}
+                      className="admin-download-btn"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      title={type === 'resumes' ? "Download Resume" : "Download Application"}
+                    >
+                      <Download size={16} />
+                      Download
+                    </motion.button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>

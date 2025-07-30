@@ -127,7 +127,7 @@
 
 .values-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 30px;
 }
 
@@ -308,7 +308,7 @@
 
 .team-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 40px;
 }
 
@@ -503,6 +503,7 @@
   .values-grid {
     grid-template-columns: 1fr;
     gap: 20px;
+    padding: 0 10px;
   }
 
   .value-card {
@@ -512,6 +513,7 @@
   .team-grid {
     grid-template-columns: 1fr;
     gap: 30px;
+    padding: 0 10px;
   }
 
   .team-card {
@@ -521,6 +523,7 @@
   .stats-grid {
     grid-template-columns: repeat(2, 1fr);
     gap: 20px;
+    padding: 0 10px;
   }
 
   .cta-content h2 {
@@ -556,6 +559,7 @@
 
   .stats-grid {
     grid-template-columns: 1fr;
+    padding: 0 10px;
   }
 
   .stat-item {
